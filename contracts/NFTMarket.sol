@@ -104,15 +104,17 @@ contract NFTMarket is ReentrancyGuard {
 
         _itemsSold.increment();
 
-        payable(owner).transfer(listingPrice); // Paying the listing price to the owner of the contract, commision
+        payable(owner).transfer(listingPrice); // Paying the listing price to the owner of the contract: commision
 
         payable(seller).transfer(msg.value);
     }
 
+    //Todo: Returns all the unsold NFTs of the market
     function fetchMarketItems() public view returns (MarketItem[] memory) {
         uint256 itemCount = _itemIds.current();
         uint256 unsoldItemCount = _itemIds.current() - _itemsSold.current();
         uint256 currentIndex = 0;
+        
         MarketItem[] memory items = new MarketItem[](unsoldItemCount);
 
         for (uint256 i = 0; i < itemCount; i++) {
@@ -126,6 +128,7 @@ contract NFTMarket is ReentrancyGuard {
         return items;
     }
 
+//Todo: Returns NFTs that an user has purchased
     function fetchMyNFTs() public view returns (MarketItem[] memory) {
         uint256 totalItemCount = _itemIds.current();
         uint256 itemCount = 0;
