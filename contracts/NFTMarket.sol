@@ -13,10 +13,6 @@ contract NFTMarket is ReentrancyGuard {
     address payable owner; //Owner of the contract
     uint256 listingPrice = 0.0015 ether;
 
-    constructor() {
-        owner = payable(msg.sender);
-    }
-
     //Todo: Struct for each individual market item
     struct MarketItem {
         uint256 itemId;
@@ -39,6 +35,10 @@ contract NFTMarket is ReentrancyGuard {
         uint256 price,
         bool sold
     );
+
+    constructor() {
+        owner = payable(msg.sender);
+    }
 
     function getListingPrice() public view returns (uint256) {
         return listingPrice;
@@ -89,14 +89,14 @@ contract NFTMarket is ReentrancyGuard {
     ) public payable nonReentrant {
         uint256 price = idToMarketItem[itemId].price;
         uint256 tokenId = idToMarketItem[itemId].tokenId;
-        address seller = idToMarketItem[tokenId].seller;
+        address seller = idToMarketItem[itemId].seller;
 
         require(
             msg.value == price,
             "Please submit the asking price in order to complete the purchase"
         );
 
-        idToMarketItem[itemId].seller.transfer(msg.value);
+        payable(seller).transfer(msg.value);
         IERC721(nftContract).transferFrom(address(this), msg.sender, tokenId);
 
         idToMarketItem[itemId].owner = payable(msg.sender);
@@ -106,7 +106,7 @@ contract NFTMarket is ReentrancyGuard {
 
         payable(owner).transfer(listingPrice); // Paying the listing price to the owner of the contract: commision
 
-        payable(seller).transfer(msg.value);
+        // payable(seller).transfer(msg.value);
     }
 
     //Todo: Returns all the unsold NFTs of the market
@@ -114,7 +114,7 @@ contract NFTMarket is ReentrancyGuard {
         uint256 itemCount = _itemIds.current();
         uint256 unsoldItemCount = _itemIds.current() - _itemsSold.current();
         uint256 currentIndex = 0;
-        
+
         MarketItem[] memory items = new MarketItem[](unsoldItemCount);
 
         for (uint256 i = 0; i < itemCount; i++) {
@@ -128,7 +128,7 @@ contract NFTMarket is ReentrancyGuard {
         return items;
     }
 
-//Todo: Returns NFTs that an user has purchased
+    //Todo: Returns NFTs that an user has purchased
     function fetchMyNFTs() public view returns (MarketItem[] memory) {
         uint256 totalItemCount = _itemIds.current();
         uint256 itemCount = 0;
