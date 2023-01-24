@@ -3,12 +3,13 @@ import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 import { useRouter } from "next/router";
 import { create as ipfsHttpClient } from "ipfs-http-client";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../pinata";
 
-const client = ipfsHttpClient("https://ipfs.infura.io:5001/api/v0");
+// const client = ipfsHttpClient("https://ipfs.infura.io:5001/api/v0");
 
-import { nftaddress, nftmarketaddress } from "../config";
-import NFT from "../artifacts/contracts/NFT.sol/NFT.json";
-import Market from "../artifacts/contracts/NFTMarket.sol/NFTMarket.json";
+import { nftaddress, nftmarketaddress, nftABI, nftmarketABI } from "../config";
+// import NFT from "../artifacts/contracts/NFT.sol/NFT.json";
+// import Market from "../artifacts/contracts/NFTMarket.sol/NFTMarket.json";
 
 const createItem = () => {
   const [fileurl, setFileUrl] = useState(null);
@@ -48,7 +49,7 @@ const createItem = () => {
     };
 
     try {
-      const response = await uploadJsonToIPFS(nftJSON);
+      const response = await uploadJSONToIPFS(nftJSON);
       if (response.success === true) {
         console.log("Uploaded JSON to Pinata", response);
         return response.pinataURL;
@@ -58,12 +59,13 @@ const createItem = () => {
     }
   }
 
+  //TODO: List NFT for sale and upload data to IPFS
   async function listNFTForSale() {
     try {
       const metadataURL = await uploadMetadataToIPFS();
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-      updateMessage("Please wait.. uploading (upto 5 mins)");
+      // updateMessage("Please wait.. uploading (upto 5 mins)");
 
       // let contract = new ethers.Contract(nftaddress, NFT.abi, signer);
       // let transaction = await contract.createToken(url);
@@ -73,26 +75,33 @@ const createItem = () => {
       // let value = event.args[2];
       // let tokenId = value.toNumber();
 
+      //ToDo: NFT contract
+      let nftContract = new ethers.Contract(nftaddress, nftABI, signer);
+      let nftTransaction = await nftContract.createToken(metadataURL);
+      await nftTransaction.wait();
+
       //TOdo: Marketplace contract
       let contractMarket = new ethers.Contract(
         nftmarketaddress,
-        Market.abi,
+        nftmarketABI,
         signer
       );
       let listingPrice = await contractMarket.getListingPrice();
       listingPrice = listingPrice.toString();
-      const price = ethers.utils.parseUnits(formInput.price, "ether");//NFT price
+      const price = ethers.utils.parseUnits(formInput.price, "ether"); //NFT price
 
       let transactionMarket = await contractMarket.createMarketItem(
         nftaddress,
         tokenId,
         price,
         {
-          value: listingPrice
+          value: listingPrice,
         }
       );
 
       await transactionMarket.wait();
+      alert("Successfully listed your NFT!");
+      updateFormInput({ name: "", description: "", price: "" });
       router.push("/");
     } catch (error) {
       console.error("Upload error", error);
